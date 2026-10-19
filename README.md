@@ -97,5 +97,5 @@ Chạy từ thư mục gốc project Unity:
 - SVG hợp với phong cách flat, casual, vector. Art vẽ tay nhiều texture thì SVG chỉ đạt mức na ná.
 - Capture ở Edit mode không mô phỏng safe area của thiết bị thật.
 - Khi chụp, mọi canvas chuyển sang camera space ở cùng khoảng cách và chỉ xếp theo sorting order. Scene trộn canvas overlay với canvas camera có thể xếp lớp khác lúc chạy game.
-- Đã kiểm trên Unity 6000.6 (Built-in và URP). Unity 6000.0 chưa chạy thử.
+- Đã kiểm trên Unity 6000.0.68f1 và 6000.6.0f1, cả Built-in lẫn URP.
 - Package cài bằng `file:` đường dẫn tuyệt đối chỉ chạy trên máy này. Máy khác dùng git URL như ở trên.
