@@ -94,6 +94,7 @@ async function verifyOne(project, surface, before) {
   const pixelDiff = mismatched / (ref.width * ref.height);
   if (structural < t.ssim) problems.push(`pixels: SSIM ${structural.toFixed(3)} < ${t.ssim}`);
 
+  const effects = preview.model.ops.filter((o) => o.effect).map((o) => `${o.path} (${o.effect})`);
   const outDir = path.join(project.dir, 'reports', 'verify', before ? `${surface}.before` : surface);
   writeJson(path.join(outDir, 'report.json'), {
     surface,
@@ -102,6 +103,7 @@ async function verifyOne(project, surface, before) {
     ssim: Math.round(structural * 1000) / 1000,
     pixelDiff: Math.round(pixelDiff * 1000) / 1000,
     problems,
+    notCompared: effects.length ? { reason: 'drawn by a custom material; set their final state in the fixture', nodes: effects } : undefined,
   });
   writeIfChanged(path.join(outDir, 'verify.png'), await composeRows([{
     title: `${surface}${before ? ' (before)' : ''}`,
@@ -115,6 +117,7 @@ async function verifyOne(project, surface, before) {
 
   console.log(`${problems.length ? 'FAIL' : 'PASS'} ${surface}: SSIM ${structural.toFixed(3)}, diff ${(pixelDiff * 100).toFixed(1)}%, ${problems.length} problems -> ${relative(outDir)}`);
   for (const p of problems.slice(0, 12)) console.log(`  ${p}`);
+  if (effects.length) console.log(`  note: ${effects.length} node(s) drawn by a custom material are not compared: ${effects.slice(0, 3).join(', ')}${effects.length > 3 ? ', ...' : ''}`);
   if (problems.length > 12) console.log(`  ... ${problems.length - 12} more in report.json`);
   return problems.length === 0;
 }

@@ -124,6 +124,7 @@ async function artboard(model, { assetDir, uploads, blobs, background }) {
 
     if (op.kind === 'image') {
       const img = op.image;
+      if (op.effect && !img.file) continue; // a shader-only quad (glare, shine): nothing meaningful to draw
       const sliced = (img.type === 'Sliced' || img.type === 'Tiled') && img.slice.some((v) => v > 0);
       const special = img.type === 'Filled' && img.fillAmount < 0.999;
       if (special || (img.preserveAspect && (img.type === 'Simple' || img.type === 'Filled'))) {
@@ -138,7 +139,11 @@ async function artboard(model, { assetDir, uploads, blobs, background }) {
       if (!source) continue;
       const tinted = img.tinted ? tint(source, img.tint) : source;
       const key = await bake(await sharp(tinted.data, { raw: { width: tinted.width, height: tinted.height, channels: 4 } }).png().toBuffer(), assetDir, uploads);
-      if (sliced) {
+      if (img.type === 'Tiled' && !sliced && img.spriteUnits?.every((v) => v >= 1)) {
+        // Tiled: repeat at the sprite's native size from the bottom-left, like uGUI.
+        rules.push(`.u${i}{background-image:url(${url(key)});background-size:${px(img.spriteUnits[0])} ${px(img.spriteUnits[1])};background-repeat:repeat;background-position:left bottom}`);
+        elements.push(`<div class="u${i}" style="${style.join('; ')}"></div>`);
+      } else if (sliced) {
         // 9-slice: border-image with the sprite's border in source px, drawn at the border size Unity uses.
         let [dl, db, dr, dt] = img.sliceUnits;
         if (dl + dr > w && dl + dr > 0) [dl, dr] = [(dl * w) / (dl + dr), (dr * w) / (dl + dr)];

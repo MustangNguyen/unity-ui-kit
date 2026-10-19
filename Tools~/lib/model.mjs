@@ -33,6 +33,15 @@ export function parseColor(hex) {
 
 const isWhite = (c) => c[0] >= 0.999 && c[1] >= 0.999 && c[2] >= 0.999 && c[3] >= 0.999;
 
+/** Pixel size of a PNG from its header (no decoding). */
+export function pngSize(file) {
+  const fd = fs.openSync(file, 'r');
+  const head = Buffer.alloc(24);
+  fs.readSync(fd, head, 0, 24, 0);
+  fs.closeSync(fd);
+  return head.toString('ascii', 12, 16) === 'IHDR' ? [head.readUInt32BE(16), head.readUInt32BE(20)] : null;
+}
+
 const NUM = '(-?[\\d.eE+-]+)';
 const vec4 = (key, text) => text.match(new RegExp(`${key}:\\s*\\{x:\\s*${NUM},\\s*y:\\s*${NUM},\\s*z:\\s*${NUM},\\s*w:\\s*${NUM}\\}`))?.slice(1, 5).map(Number);
 
@@ -150,21 +159,36 @@ export function buildModel(project, inventory, { reskin = null } = {}) {
     // Under a resized/moved node, stretched children would move too; the model keeps their old rects.
     const approximate = [...moved].some((m) => (m === '' ? node.path !== '' : node.path.startsWith(`${m}/`)));
     if (!node.active || node.alpha <= 0.001 || node.width <= 0 || node.height <= 0) return;
-    const base = { path: node.path, rect: [node.x, node.y, node.width, node.height], clip: node.clip?.length === 4 ? node.clip : null, alpha: node.alpha, approximate };
+    const base = {
+      path: node.path, rect: [node.x, node.y, node.width, node.height], clip: node.clip?.length === 4 ? node.clip : null, alpha: node.alpha, approximate,
+      effect: node.material || null, // drawn by a custom shader: its look cannot be reproduced here
+    };
 
-    if (node.drawsImage) {
+    if (node.drawsImage && !node.maskGraphicHidden) {
       let image = null;
+      const multiplier = change?.ppuMultiplier > 0 ? change.ppuMultiplier : node.pixelsPerUnitMultiplier || 1;
       if (change?.sprite) {
         const s = resolveSprite(change.sprite);
-        // Unity: border / (spritePPU / refPPU * multiplier), in local units; then the node's scale to design px.
-        const k = refPpu / s.ppu / (node.pixelsPerUnitMultiplier || 1);
+        // Unity: px / (spritePPU / refPPU * multiplier), in local units; then the node's scale to design px.
+        const k = refPpu / s.ppu / multiplier;
         const [sx, sy] = [node.scaleX || 1, node.scaleY || 1];
         const units = [s.slice[0] * k * sx, s.slice[1] * k * sy, s.slice[2] * k * sx, s.slice[3] * k * sy];
+        const px = s.cropBottom ? s.cropBottom.slice(2, 4) : pngSize(s.file) ?? [0, 0];
         let type = node.imageType;
         if (!change.type && s.slice.some((v) => v > 0) && type === 'Simple') type = 'Sliced';
-        image = { file: s.file, crop: null, cropBottom: s.cropBottom, slice: s.slice, sliceUnits: units, type, sprite: change.sprite };
+        image = {
+          file: s.file, crop: null, cropBottom: s.cropBottom, slice: s.slice, sliceUnits: units, type, sprite: change.sprite,
+          sourcePx: px, spriteUnits: [px[0] * k * sx, px[1] * k * sy],
+        };
       } else if (node.spritePath) {
-        image = { file: project.resolve(node.spritePath), crop: node.spriteRect, slice: node.slice, sliceUnits: node.sliceUnits, type: node.imageType, sprite: node.sprite };
+        // A changed multiplier rescales the borders and the native size the inventory measured.
+        const f = (node.pixelsPerUnitMultiplier || 1) / multiplier;
+        image = {
+          file: project.resolve(node.spritePath), crop: node.spriteRect, slice: node.slice, type: node.imageType, sprite: node.sprite,
+          sliceUnits: node.sliceUnits.map((v) => v * f),
+          sourcePx: node.spriteRect.slice(2, 4),
+          spriteUnits: node.spriteUnits ? node.spriteUnits.map((v) => v * f) : null,
+        };
       } else if (node.texturePath) {
         image = { file: project.resolve(node.texturePath), crop: null, slice: [0, 0, 0, 0], sliceUnits: [0, 0, 0, 0], type: 'Simple' };
       } else if (node.components.includes('RawImage')) {
@@ -188,6 +212,7 @@ export function buildModel(project, inventory, { reskin = null } = {}) {
             tint,
             tinted: !isWhite(parseColor(tint)),
             pivot: [node.pivotX ?? 0.5, node.pivotY ?? 0.5],
+            ppuMultiplier: multiplier,
           },
         });
       }

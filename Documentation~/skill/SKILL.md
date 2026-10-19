@@ -81,15 +81,29 @@ Use this when the game already has its screens and the job is a new look. The re
 - `color` / `text.color`: a theme token (adds `ThemedGraphic`) or `#RRGGBBAA`.
 - `size` [w, h] and `add[].rect` [x, y, w, h] are design px (like inventory rects); `position` is `anchoredPosition`.
 - `active`: "true" / "false" (game code may still toggle it at runtime).
+- `ppuMultiplier`: Image.pixelsPerUnitMultiplier. Bigger = thinner 9-slice borders and smaller tiles. Prefer a sprite made for the element's height (`"heights"` in assets.json) over a multiplier when outlines must stay the same thickness everywhere.
 - `add`: decorations appended as the parent's last child (drawn on top). Refused under a LayoutGroup, or a node whose children game code iterates (directly, or through a serialized reference held by a class that walks children). Decorations taken out of the map are removed on the next apply.
 - Units hold under scaled parents: the engine divides by the scale between the node and the canvas, and the preview applies the same scale to 9-slice borders and text.
 
+### Display quality: `uikit lint`
+A match against the preview cannot see these, because the preview draws them faithfully. `UIKit/uikit lint <surface>` checks:
+- **border**: 9-slice borders larger than the element; Unity squashes the corners and round ends.
+- **blur**: art shown larger than its pixels on a `deviceScale` (uikit.json, default 1.5) screen.
+- **stretch**: Simple images (and Filled ones with a rounded sprite: Filled ignores 9-slice) whose aspect ratio differs from the sprite.
+- **stroke**: one sprite drawn with different border scales, so outlines differ in thickness.
+- **tile**: the Tiled pattern size (info, to compare with the reference).
+Every issue has a fix. `--fix` writes the property fixes (ppuMultiplier, preserveAspect) into the map; new art and code changes stay in the report. `--before` lints the game as it is; `--capture` lints the last Unity capture (what Unity really shows). Lint must have no errors before Apply Reskin.
+
+For new sprites, generate one per element height so borders always fit and outlines stay equal: `{ "id": "pill", "type": "panel", "style": "pill", "size": [40, 40], "heights": [38, 54, 90] }` gives `pill_h38`, `pill_h54`, `pill_h90` (buttons: `cta_h80_normal`, ...). Set `"scale"` in uikit.json to `deviceScale` or more for sharp art.
+
 ### Flow (per surface, parallel across surfaces)
 1. Write the map from the inventory, the theme and the component crops of the reference. One agent per surface; the map is that agent's only file.
-2. `UIKit/uikit preview <surface>`: look at `UIKit/previews/<surface>.png`. Judge it (rubric) against the reference.
+2. `UIKit/uikit preview <surface>` and `UIKit/uikit lint <surface> --fix`: look at `UIKit/previews/<surface>.png` and `UIKit/reports/lint/<surface>/lint.png`. Judge the preview (rubric) against the reference.
 3. `UIKit/uikit canvas`: generates the Claude Design canvas from the same model (see "Canvas" below). The user reviews the canvas: CHECKPOINT 2.
 4. Unity: `Tools/UI Kit/Apply Reskin (dry run)`, read `UIKit/reports/reskin/<surface>.json`, then `Apply Reskin`. The engine changes properties only, never renames, reparents, reorders or deletes nodes, and saves nothing if any check fails.
-5. `Tools/UI Kit/Capture Surfaces`, then `UIKit/uikit verify <surface>`: structure, sprites, rects (±2 px) and pixels against the preview. Fix the map or the engine input, never the scene by hand.
+5. `Tools/UI Kit/Capture Surfaces`, then `UIKit/uikit verify <surface>` (structure, sprites, rects ±2 px, pixels against the preview) and `UIKit/uikit lint <surface> --capture`. Fix the map or the engine input, never the scene by hand.
+
+The preview leaves out nodes drawn by a custom material (glare, iris reveal, blur: their shader decides the look) and Mask graphics with Show Mask Graphic off; verify lists the material nodes it did not compare. Put such effects in their final state in the fixture.
 
 Batch mode for all of it: `-executeMethod Mustang.UIKit.Editor.UIKitSurfaces.FromCommandLine -uikitAction inventory|capture|reskin [-uikitSurface X] [-uikitState s] [-uikitDryRun]` (no `-quit` needed: it exits itself, with code 1 when any surface failed). Unity in batch mode must run without `-nographics` for captures.
 

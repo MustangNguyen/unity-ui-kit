@@ -40,6 +40,7 @@ namespace Mustang.UIKit.Editor
 
             public bool drawsImage;
             public string color;          // #RRGGBBAA of the Graphic
+            public string material;       // shader of a custom material (glare, iris, grayscale...), empty for the default UI shaders
             public string sprite;         // sprite name
             public string spritePath;     // source texture asset path
             public float[] spriteRect;    // [x, y, w, h] in source texture pixels, origin top-left
@@ -47,6 +48,7 @@ namespace Mustang.UIKit.Editor
             public float[] slice;         // 9-slice border in source texture pixels [left, bottom, right, top]
             public float[] sliceUnits;    // the same border in design px as Unity draws it (local border x node scale)
             public float pixelsPerUnitMultiplier;
+            public float[] spriteUnits;   // design px of one tile for Image type Tiled (sprite size / multiplied pixels per unit)
             public string imageType;
             public bool preserveAspect;
             public bool fillCenter;
@@ -68,6 +70,7 @@ namespace Mustang.UIKit.Editor
             public float lineSpacing;
             public float characterSpacing;
             public bool masks;
+            public bool maskGraphicHidden; // Mask with Show Mask Graphic off: the image only clips, it is not drawn
         }
 
         [Serializable]
@@ -138,6 +141,7 @@ namespace Mustang.UIKit.Editor
                     node.fixedHeight = Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y);
                 }
                 node.masks = t.GetComponent<RectMask2D>() != null || t.GetComponent<Mask>() != null;
+                node.maskGraphicHidden = t.TryGetComponent<Mask>(out var mask) && mask.enabled && !mask.showMaskGraphic;
                 DescribeGraphic(t, node, canvas);
                 file.nodes.Add(node);
 
@@ -214,6 +218,9 @@ namespace Mustang.UIKit.Editor
             var graphic = t.GetComponent<Graphic>();
             if (graphic == null || !graphic.enabled) return;
             node.color = "#" + ColorUtility.ToHtmlStringRGBA(graphic.color);
+            // Default UI shaders (incl. the ETC1 alpha-split variant) are not effects.
+            var shader = graphic is TMP_Text || graphic.material == null || graphic.material.shader == null ? "" : graphic.material.shader.name;
+            if (shader.Length > 0 && !shader.StartsWith("UI/Default")) node.material = shader;
 
             switch (graphic)
             {
@@ -285,6 +292,7 @@ namespace Mustang.UIKit.Editor
             var perUnit = image.pixelsPerUnit * image.pixelsPerUnitMultiplier; // what Image uses to size borders (local units)
             var (kx, ky) = (node.scaleX > 0 ? node.scaleX : 1f, node.scaleY > 0 ? node.scaleY : 1f);
             node.sliceUnits = new[] { R(b.x / perUnit * kx), R(b.y / perUnit * ky), R(b.z / perUnit * kx), R(b.w / perUnit * ky) };
+            node.spriteUnits = new[] { R(r.width / perUnit * kx), R(r.height / perUnit * ky) };
         }
     }
 

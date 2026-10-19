@@ -94,6 +94,33 @@ export async function nineSlice(source, slicePx, sliceUnits, width, height, fill
   return blank(width, height, pieces);
 }
 
+/** Image type Tiled without borders: the sprite repeats at its native size from the bottom-left corner, as uGUI does. */
+export async function tile(source, [tileW, tileH], width, height) {
+  // Cell edges at round(i * tile) keep the fractional tile size, so the pattern stays in phase with Unity.
+  const cache = new Map();
+  const cell = async (w, h) => {
+    if (!cache.has(`${w}x${h}`)) cache.set(`${w}x${h}`, await resize(source, w, h));
+    return cache.get(`${w}x${h}`);
+  };
+  const pieces = [];
+  for (let j = 0; height - Math.round(j * tileH) > 0; j++) {
+    const bottom = height - Math.round(j * tileH);
+    const top = height - Math.round((j + 1) * tileH);
+    for (let i = 0; Math.round(i * tileW) < width; i++) {
+      const left = Math.round(i * tileW);
+      const right = Math.round((i + 1) * tileW);
+      const piece = await cell(Math.max(1, right - left), Math.max(1, bottom - top));
+      // Cells hanging over the top or right edge are cropped (uGUI keeps the bottom-left of the sprite).
+      const [x0, y0] = [left, Math.max(0, top)];
+      const [w, h] = [Math.min(piece.width, width - left), Math.min(piece.height, bottom - y0)];
+      if (w <= 0 || h <= 0) continue;
+      const part = w === piece.width && h === piece.height ? piece : await extract(piece, 0, piece.height - h, w, h);
+      pieces.push({ ...asInput(part), left: x0, top: y0 });
+    }
+  }
+  return blank(width, height, pieces);
+}
+
 /** Multiplies RGBA by a tint and an extra alpha, in place on a copy. */
 export function tint(raw, color, alpha = 1) {
   const [r, g, b, a] = parseColor(color);
@@ -130,7 +157,9 @@ export async function drawImage(op, width, height) {
   if (!source) return null;
   let raw;
   const sliced = (img.type === 'Sliced' || img.type === 'Tiled') && img.slice.some((v) => v > 0);
-  if (sliced) raw = await nineSlice(source, img.slice, img.sliceUnits, width, height, img.fillCenter !== false);
+  const tiled = img.type === 'Tiled' && !sliced && img.spriteUnits?.every((v) => v >= 1);
+  if (tiled) raw = await tile(source, img.spriteUnits, width, height);
+  else if (sliced) raw = await nineSlice(source, img.slice, img.sliceUnits, width, height, img.fillCenter !== false);
   else if (img.preserveAspect && (img.type === 'Simple' || img.type === 'Filled')) {
     // Unity places the fitted image by the pivot, and fills the fitted rect, not the whole one.
     let fitted = await resize(source, width, height, 'inside');
@@ -204,7 +233,14 @@ function visibleBox(rect, clip, width, height) {
 export async function renderModel(model, { background = null } = {}) {
   const layers = [];
   const masks = [];
+  // A custom shader decides what effect ops show (glare, iris reveal, grayscale). Shader-only quads (no sprite)
+  // are left out; sprite-backed ones are drawn as plain sprites. Both are masked out of comparisons.
   for (const op of model.ops) {
+    if (op.effect) {
+      const box = visibleBox(op.rect.map(Math.round), op.clip, model.width, model.height);
+      if (box) masks.push([box[0], box[1], box[2] - box[0], box[3] - box[1]]);
+      if (op.kind === 'image' && !op.image.file) continue;
+    }
     const [x, y, w, h] = op.rect.map(Math.round);
     if (w <= 0 || h <= 0) continue;
     const box = visibleBox([x, y, w, h], op.clip, model.width, model.height);

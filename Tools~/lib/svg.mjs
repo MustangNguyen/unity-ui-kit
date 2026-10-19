@@ -156,6 +156,7 @@ export function buildBox({ tokens, style, width, height, state = 'normal', id })
       Math.max(border[3], pad.t + shadow.dy + reach),
     ];
   }
+  const wanted = border.map(Math.ceil); // what the corners need, before giving up on an axis
   if (border[0] + border[2] >= W) border = [0, border[1], 0, border[3]];
   if (border[1] + border[3] >= H) border = [border[0], 0, border[2], 0];
 
@@ -164,6 +165,7 @@ export function buildBox({ tokens, style, width, height, state = 'normal', id })
     width: W,
     height: H,
     border: border.map(Math.ceil),
+    wanted,
   };
 }
 

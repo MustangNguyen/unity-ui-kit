@@ -40,6 +40,7 @@ namespace Mustang.UIKit.Editor
             public float[] position;    // anchoredPosition [x, y] in the parent's local units; only on axes with equal anchors
             public string active;       // "true" | "false" | "" (unchanged)
             public string preserveAspect; // "true" | "false" | ""
+            public float ppuMultiplier;   // Image.pixelsPerUnitMultiplier; > 0 to set (bigger = thinner borders, smaller tiles)
             public TextStyle text;
         }
 
@@ -239,9 +240,9 @@ namespace Mustang.UIKit.Editor
             var rect = node as RectTransform;
             var image = node.GetComponent<Image>();
 
-            if (!string.IsNullOrEmpty(change.sprite) || !string.IsNullOrEmpty(change.type) || !string.IsNullOrEmpty(change.preserveAspect))
+            if (!string.IsNullOrEmpty(change.sprite) || !string.IsNullOrEmpty(change.type) || !string.IsNullOrEmpty(change.preserveAspect) || change.ppuMultiplier > 0)
             {
-                if (image == null) throw new InvalidOperationException("has no Image for \"sprite\"/\"type\"/\"preserveAspect\"");
+                if (image == null) throw new InvalidOperationException("has no Image for \"sprite\"/\"type\"/\"preserveAspect\"/\"ppuMultiplier\"");
                 Record(image);
                 if (!string.IsNullOrEmpty(change.sprite))
                 {
@@ -259,6 +260,11 @@ namespace Mustang.UIKit.Editor
                     report.applied.Add($"{change.path}: type {change.type}");
                 }
                 if (!string.IsNullOrEmpty(change.preserveAspect)) image.preserveAspect = change.preserveAspect == "true";
+                if (change.ppuMultiplier > 0)
+                {
+                    image.pixelsPerUnitMultiplier = change.ppuMultiplier;
+                    report.applied.Add($"{change.path}: ppuMultiplier {change.ppuMultiplier}");
+                }
                 Commit(image);
             }
 

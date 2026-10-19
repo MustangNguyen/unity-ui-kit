@@ -27,6 +27,9 @@ async function generate(project, args) {
   const tokens = createTokens(project.theme);
   const { assets } = readJson(path.join(project.dir, 'assets.json'));
   const inputs = hashFiles(project, genInputs(project, assets), genSettings(project));
+  const names = assets.flatMap(spriteNames);
+  const dupes = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+  if (dupes.length) fail(`assets.json produces the same sprite name twice: ${dupes.join(', ')} (check ids and "heights")`);
   const only = args.only ? new Set(String(args.only).split(',')) : null;
   for (const id of only ?? []) if (!assets.some((a) => a.id === id)) console.warn(`  --only: no asset "${id}"`);
   const scale = project.config.scale;
@@ -89,20 +92,43 @@ async function generate(project, args) {
   if (failed) process.exitCode = 1;
 }
 
+/**
+ * A box sprite whose 9-slice border fits inside it on both axes. With "heights", the width grows when the
+ * corners (a "full" radius is half the height) need more room than "size" gives; a stretchable middle stays.
+ */
+function boxThatFits(tokens, asset, width, height, state, id) {
+  const style = tokens.style(asset.style);
+  let w = asset.heights?.length ? Math.max(width, height + 16) : width;
+  let box = buildBox({ tokens, style, width: w, height, state, id });
+  for (let i = 0; i < 3 && box.wanted[0] + box.wanted[2] + 4 > box.width; i++) {
+    w = Math.ceil(w + box.wanted[0] + box.wanted[2] + 4 - box.width);
+    box = buildBox({ tokens, style, width: w, height, state, id });
+  }
+  // A sprite made for one height needs no vertical slicing; a shared one stretches its round ends when taller.
+  if (!asset.heights?.length && box.wanted[1] + box.wanted[3] >= box.height)
+    console.warn(`  ${id}: corners fill the whole height, so it cannot stretch vertically; add "heights" for each element height it is used at`);
+  return box;
+}
+
 function* variants(asset, tokens, project) {
   const { id, size } = asset;
   if (!Array.isArray(size) || size.length !== 2) throw new Error('"size" must be [width, height]');
   const [width, height] = size;
   const source = () => fs.readFileSync(path.join(project.dir, asset.src), 'utf8');
 
+  // "heights": one sprite per element height, so outlines and corners keep the same design-px size at every
+  // height and the 9-slice border always fits (no ppuMultiplier, no squashed corners).
+  const heights = asset.heights?.length ? asset.heights.map((h) => ({ h, suffix: `_h${h}` })) : [{ h: height, suffix: '' }];
+
   switch (asset.type) {
     case 'panel':
-      yield { name: id, ...buildBox({ tokens, style: tokens.style(asset.style), width, height, id }) };
-      break;
     case 'button':
-      for (const state of asset.states ?? DEFAULT_STATES) {
-        const name = `${id}_${state}`;
-        yield { name, ...buildBox({ tokens, style: tokens.style(asset.style), width, height, state, id: name }) };
+      for (const { h, suffix } of heights) {
+        const states = asset.type === 'button' ? asset.states ?? DEFAULT_STATES : [null];
+        for (const state of states) {
+          const name = `${id}${suffix}${state ? `_${state}` : ''}`;
+          yield { name, ...boxThatFits(tokens, asset, width, h, state ?? 'normal', name) };
+        }
       }
       break;
     case 'icon':

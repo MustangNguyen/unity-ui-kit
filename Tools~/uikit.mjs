@@ -21,6 +21,9 @@ Reskin of an existing game (UIKit/surfaces.json, Unity: Tools/UI Kit/Dump Invent
   scan                       find what game code looks up by name/path or walks by index -> UIKit/protected.json
   preview [<surface>] [--before]
                              expected look from inventory + reskin map -> UIKit/previews/<surface>.png
+  lint [<surface>] [--before|--capture] [--fix]
+                             display quality: squashed 9-slice, blur, stretch, uneven outlines, tile size;
+                             --fix writes ppuMultiplier/preserveAspect fixes into the reskin map
   canvas [<surface>...] [--before] [--blobs <file>]
                              Claude Design canvas files (+ assets to upload) from the same model
   verify [<surface>] [--before]
@@ -28,7 +31,7 @@ Reskin of an existing game (UIKit/surfaces.json, Unity: Tools/UI Kit/Dump Invent
   doctor                     setup checks (reference resolution vs CanvasScaler, capture sizes, scan, package)
 `;
 
-const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'scan', 'preview', 'canvas', 'verify', 'doctor', 'install-skill'];
+const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'scan', 'preview', 'lint', 'canvas', 'verify', 'doctor', 'install-skill'];
 
 const args = parseArgs(process.argv.slice(2));
 args.project = path.resolve(args.project ?? process.cwd());

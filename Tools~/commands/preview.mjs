@@ -22,8 +22,8 @@ export default async function preview(args) {
   }
 }
 
-export async function renderSurface(project, surface, { before = false } = {}) {
-  const inventory = loadInventory(project, surface);
+export async function renderSurface(project, surface, { before = false, inventory = null } = {}) {
+  inventory = inventory ?? loadInventory(project, surface);
   const mapFile = reskinPath(project, surface);
   const reskin = !before && fs.existsSync(mapFile) ? readJson(mapFile) : null;
   const model = buildModel(project, inventory, { reskin });

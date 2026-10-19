@@ -9,6 +9,7 @@ const DEFAULT_CONFIG = {
   scale: 1,
   thresholds: { ssim: 0.8, paletteDeltaE: 10, iou: 0.85 },
   maxIterations: 4,
+  deviceScale: 1.5, // device px per design px to plan art resolution for (1536-wide tablets at a 1024 design)
 };
 
 /** Loads the UIKit/ folder of a Unity project: uikit.json, theme.json and helpers to resolve paths. */
@@ -71,8 +72,10 @@ export function captureFiles(project, screen) {
 export const DEFAULT_STATES = ['normal', 'pressed', 'disabled'];
 
 /** PNG base names that `gen` writes for one asset (buttons get one per state). */
-export const spriteNames = (asset) =>
-  asset.type === 'button' ? (asset.states ?? DEFAULT_STATES).map((s) => `${asset.id}_${s}`) : [asset.id];
+export function spriteNames(asset) {
+  const bases = asset.heights?.length && (asset.type === 'button' || asset.type === 'panel') ? asset.heights.map((h) => `${asset.id}_h${h}`) : [asset.id];
+  return asset.type === 'button' ? bases.flatMap((b) => (asset.states ?? DEFAULT_STATES).map((s) => `${b}_${s}`)) : bases;
+}
 
 /** Screen names in UIKit/screens/, sorted. */
 export function listScreens(project) {

@@ -9,5 +9,6 @@
   "scale": 1,
   "background": "#000000",
   "thresholds": { "ssim": 0.8, "paletteDeltaE": 10, "iou": 0.85 },
-  "maxIterations": 4
+  "maxIterations": 4,
+  "deviceScale": 1.5
 }
