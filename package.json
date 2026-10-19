@@ -1,6 +1,6 @@
 {
   "name": "com.mustang.ui-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Mustang UI Kit",
   "description": "Reference-driven uGUI workflow: theme tokens, SVG sprite generation, edit-mode capture, layout dump and generated-sprite import.",
   "license": "MIT",

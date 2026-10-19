@@ -36,7 +36,7 @@ Lệnh không ghi đè file đã có.
 Dùng ở máy khác hoặc CI thì cài package bằng git URL thay cho `file:`:
 
 ```bash
-node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.1.0"
+node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.1.1"
 ```
 
 CLI vẫn chạy từ bản clone (cần `npm install` trong `Tools~`).
