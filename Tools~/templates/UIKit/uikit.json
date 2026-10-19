@@ -1,0 +1,13 @@
+{
+  "referenceResolution": { "width": 1080, "height": 1920 },
+  "captureSizes": [
+    { "width": 1080, "height": 1920, "label": "16x9" },
+    { "width": 1080, "height": 2340, "label": "19.5x9" },
+    { "width": 1536, "height": 2048, "label": "4x3" }
+  ],
+  "generatedDir": "Assets/UI/Generated",
+  "scale": 1,
+  "background": "#000000",
+  "thresholds": { "ssim": 0.8, "paletteDeltaE": 10, "iou": 0.85 },
+  "maxIterations": 4
+}

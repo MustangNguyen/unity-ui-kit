@@ -1,0 +1,17 @@
+{
+  "name": "uikit-tools",
+  "private": true,
+  "type": "module",
+  "description": "CLI for the Mustang UI Kit: SVG sprite generation, reference comparison and review sheets.",
+  "bin": {
+    "uikit": "./uikit.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pixelmatch": "^7.1.0",
+    "sharp": "^0.34.0",
+    "ssim.js": "^3.5.0"
+  }
+}

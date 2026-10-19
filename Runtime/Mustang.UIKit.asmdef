@@ -1,0 +1,8 @@
+{
+    "name": "Mustang.UIKit",
+    "rootNamespace": "Mustang.UIKit",
+    "references": [
+        "UnityEngine.UI"
+    ],
+    "autoReferenced": true
+}

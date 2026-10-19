@@ -1,0 +1,12 @@
+{
+  "assets": [
+    { "id": "btn_primary", "type": "button", "style": "button", "size": [120, 120] },
+    { "id": "btn_secondary", "type": "button", "style": "button.secondary", "size": [120, 120] },
+    { "id": "btn_success", "type": "button", "style": "button.success", "size": [120, 120], "states": ["normal", "pressed"] },
+    { "id": "panel_main", "type": "panel", "style": "panel", "size": [160, 160] },
+    { "id": "bar_track", "type": "panel", "style": "bar.track", "size": [96, 48] },
+    { "id": "bar_fill", "type": "panel", "style": "bar.fill", "size": [80, 36] },
+    { "id": "badge", "type": "panel", "style": "badge", "size": [56, 56] },
+    { "id": "icon_star", "type": "icon", "src": "icons/star.svg", "style": "icon", "size": [128, 128] }
+  ]
+}

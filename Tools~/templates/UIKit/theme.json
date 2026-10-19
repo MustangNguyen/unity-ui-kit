@@ -1,0 +1,97 @@
+{
+  "name": "example-casual",
+  "colors": [
+    { "name": "bg", "value": "#2B1B4A" },
+    { "name": "ink", "value": "#3A2A1A" },
+    { "name": "white", "value": "#FFFFFF" },
+    { "name": "shadow", "value": "#00000059" },
+
+    { "name": "surface", "value": "#FFF6E5" },
+    { "name": "surfaceDark", "value": "#F0DDBA" },
+    { "name": "surfaceEdge", "value": "#8C5A2B" },
+
+    { "name": "primary", "value": "#FFC23D" },
+    { "name": "primaryDark", "value": "#FF8A00" },
+    { "name": "primaryDeep", "value": "#A84A00" },
+
+    { "name": "secondary", "value": "#4FD3FF" },
+    { "name": "secondaryDark", "value": "#1E86D9" },
+    { "name": "secondaryDeep", "value": "#0F4E94" },
+
+    { "name": "success", "value": "#7BE36B" },
+    { "name": "successDark", "value": "#2FA84F" },
+    { "name": "successDeep", "value": "#1B6B34" },
+
+    { "name": "gold", "value": "#FFE36B" },
+    { "name": "goldDark", "value": "#F2A900" },
+    { "name": "goldDeep", "value": "#7A4B00" }
+  ],
+  "metrics": [
+    { "name": "radius.sm", "value": 14 },
+    { "name": "radius.md", "value": 26 },
+    { "name": "radius.lg", "value": 40 },
+    { "name": "stroke", "value": 6 },
+    { "name": "bevel", "value": 12 },
+    { "name": "space.sm", "value": 16 },
+    { "name": "space.md", "value": 24 },
+    { "name": "space.lg", "value": 40 },
+    { "name": "font.body", "value": 40 },
+    { "name": "font.title", "value": 72 }
+  ],
+  "styles": {
+    "button": {
+      "fill": ["primary", "primaryDark"],
+      "stroke": "primaryDeep",
+      "strokeWidth": "stroke",
+      "radius": "radius.md",
+      "bevel": { "size": "bevel", "color": "primaryDeep" },
+      "shadow": { "dy": 6, "color": "shadow" },
+      "highlight": { "opacity": 0.35, "height": 0.42 }
+    },
+    "button.secondary": {
+      "extends": "button",
+      "fill": ["secondary", "secondaryDark"],
+      "stroke": "secondaryDeep",
+      "bevel": { "color": "secondaryDeep" }
+    },
+    "button.success": {
+      "extends": "button",
+      "fill": ["success", "successDark"],
+      "stroke": "successDeep",
+      "bevel": { "color": "successDeep" }
+    },
+    "panel": {
+      "fill": ["surface", "surfaceDark"],
+      "stroke": "surfaceEdge",
+      "strokeWidth": "stroke",
+      "radius": "radius.lg",
+      "shadow": { "dy": 10, "blur": 6, "color": "shadow" },
+      "innerStroke": { "color": "#FFFFFFAA", "width": 3 },
+      "noise": { "opacity": 0.05 }
+    },
+    "bar.track": {
+      "fill": "#00000055",
+      "radius": "full",
+      "stroke": "ink",
+      "strokeWidth": 4
+    },
+    "bar.fill": {
+      "fill": ["success", "successDark"],
+      "radius": "full",
+      "highlight": { "opacity": 0.4, "height": 0.45 }
+    },
+    "badge": {
+      "fill": ["#FF6B6B", "#E03131"],
+      "stroke": "white",
+      "strokeWidth": 5,
+      "radius": "full",
+      "shadow": { "dy": 4, "color": "shadow" }
+    },
+    "icon": {
+      "fill": ["gold", "goldDark"],
+      "stroke": "goldDeep",
+      "strokeWidth": 5,
+      "shadow": { "dy": 5, "color": "shadow" }
+    }
+  }
+}

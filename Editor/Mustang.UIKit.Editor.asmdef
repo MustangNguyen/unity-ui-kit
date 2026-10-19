@@ -1,0 +1,13 @@
+{
+    "name": "Mustang.UIKit.Editor",
+    "rootNamespace": "Mustang.UIKit.Editor",
+    "references": [
+        "Mustang.UIKit",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "autoReferenced": true
+}

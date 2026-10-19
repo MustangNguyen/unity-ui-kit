@@ -1,0 +1,4 @@
+node_modules/
+*.meta.tmp
+*.log
+.omc/

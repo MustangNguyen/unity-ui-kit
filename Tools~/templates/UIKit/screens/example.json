@@ -1,0 +1,10 @@
+{
+  "reference": "../reference/home.png",
+  "scene": "Assets/Scenes/Home.unity",
+  "notes": "Copy from reference: layout, button shape, warm palette. Do not copy: background illustration.",
+  "regions": [
+    { "name": "play_button", "rect": [290, 1420, 500, 170], "asset": "btn_primary_normal", "node": "PlayButton" },
+    { "name": "settings_panel", "rect": [90, 520, 900, 760], "asset": "panel_main", "node": "SettingsPanel" },
+    { "name": "coin_icon", "rect": [40, 60, 96, 96], "asset": "icon_star", "node": "TopBar/CoinIcon" }
+  ]
+}
