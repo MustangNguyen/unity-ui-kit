@@ -36,7 +36,7 @@ Lệnh không ghi đè file đã có.
 Dùng ở máy khác hoặc CI thì cài package bằng git URL thay cho `file:`:
 
 ```bash
-node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.2.0"
+node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.3.0"
 ```
 
 CLI vẫn chạy từ bản clone (cần `npm install` trong `Tools~`).
@@ -54,6 +54,7 @@ Chạy từ thư mục gốc project Unity:
 | `UIKit/uikit compare <screen>` | So reference với ảnh chụp Unity ở mọi kích thước đã chụp: SSIM, % pixel khác, ΔE palette, IoU layout. Report nằm ở `UIKit/reports/<screen>/<size>/`. Exit code 2 khi trượt ngưỡng. Kích thước khác tỉ lệ reference chỉ để tham khảo |
 | `UIKit/uikit plan` | Task graph của cả job: việc nào xong, việc nào chạy song song được ngay, chia theo lane `parallel` / `unity` / `lead` |
 | `UIKit/uikit approve spec\|assets\|<screen>` | Ghi lại một checkpoint mày đã duyệt, để `plan` mở khóa phase sau |
+| `UIKit/uikit scan`, `preview`, `canvas`, `verify`, `doctor` | Luồng reskin game có sẵn (mục bên dưới) |
 | `UIKit/uikit icon add game-icons:lorc/crystal-ball` | Tải icon (có `lucide:<name>`), ghi credit vào `UIKit/icons/CREDITS.md` |
 
 ## Trong Unity
@@ -63,6 +64,29 @@ Chạy từ thư mục gốc project Unity:
 - Code (dùng qua Unity MCP): `UICapture.CaptureOpenScene()`, `UICapture.CapturePrefab(prefab)`, `UICapture.CapturePrefabsIn("Assets/UI/Prefabs")`.
 - Batch mode: `-executeMethod Mustang.UIKit.Editor.UICapture.CaptureFromCommandLine -uikitScenes "Assets/Scenes/Home.unity"`.
 - Sprite trong thư mục generated tự nhận 9-slice border và PPU. `UITheme.asset` được tạo tự động cạnh `ui-theme.json`.
+
+## Reskin game đã có (giữ tính năng, anim, effect)
+
+Dùng khi game đã có màn hình, chỉ đổi giao diện. Ảnh demo quyết định style; game quyết định cấu trúc; anim (DOTween, Animator) và effect giữ nguyên. Canvas `/design` và bản Unity đều sinh từ cùng một **reskin map**, không dựng tay hai lần.
+
+| Bước | Lệnh |
+|---|---|
+| Khai báo màn/popup | `UIKit/surfaces.json` (root theo component, path hoặc prefab) |
+| Tìm node code phụ thuộc | `UIKit/uikit scan` → `UIKit/protected.json` |
+| Dữ liệu giả cố định | class `IUIKitFixture` trong game (mỗi surface một class) |
+| Kiểm kê cấu trúc | Unity `Tools > UI Kit > Dump Inventory` → `UIKit/inventory/<surface>.json` |
+| Kiểm cấu hình | `UIKit/uikit doctor` |
+| Viết reskin map | `UIKit/reskin/<surface>.json` (node → sprite, màu, font, size; decoration) |
+| Ảnh kỳ vọng | `UIKit/uikit preview` → `UIKit/previews/` |
+| Canvas `/design` | `UIKit/uikit canvas` (rồi upload asset, `--blobs`) |
+| Áp vào Unity | `Tools > UI Kit > Apply Reskin` (có dry run) |
+| Chụp và kiểm | `Tools > UI Kit > Capture Surfaces`, `UIKit/uikit verify` |
+
+Engine reskin chỉ đổi thuộc tính (sprite, kiểu Sliced, màu, font, kích thước, active) và chỉ thêm decoration vào cuối. Nó không đổi tên, đổi cha, đổi thứ tự hay xóa node; nếu có thay đổi cấu trúc ngoài ý muốn thì không lưu gì. Chi tiết định dạng ở skill (`Documentation~/skill/SKILL.md`).
+
+Đã kiểm trên bản copy jigsaw (Unity 6000.0, URP): preview khớp ảnh chụp Unity với SSIM 0.97–0.999 trước khi reskin; sau khi reskin một popup, `verify` PASS (SSIM 0.974) và hai surface khác trong cùng scene vẫn PASS.
+
+Lưu ý: lưu scene sau reskin làm Unity ghi lại các giá trị RectTransform do LayoutGroup điều khiển (diff lớn trong file scene). Các giá trị này được layout tính lại khi chạy; `verify` của các surface không bị reskin xác nhận không có gì đổi trên màn hình.
 
 ## Chia việc cho nhiều agent
 

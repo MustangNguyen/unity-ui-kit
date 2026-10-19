@@ -16,9 +16,19 @@ const USAGE = `uikit <command> [--project <unity-project>]   (default project: c
   approve spec|assets|<screen> [--revoke]
                              record a user approval (checkpoint) for plan
   install-skill              link the Claude skill into ~/.claude/skills
+
+Reskin of an existing game (UIKit/surfaces.json, Unity: Tools/UI Kit/Dump Inventory, Capture Surfaces, Apply Reskin):
+  scan                       find what game code looks up by name/path or walks by index -> UIKit/protected.json
+  preview [<surface>] [--before]
+                             expected look from inventory + reskin map -> UIKit/previews/<surface>.png
+  canvas [<surface>...] [--before] [--blobs <file>]
+                             Claude Design canvas files (+ assets to upload) from the same model
+  verify [<surface>] [--before]
+                             Unity capture vs expected: structure, sprites, rects, pixels (text masked)
+  doctor                     setup checks (reference resolution vs CanvasScaler, capture sizes, scan, package)
 `;
 
-const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'install-skill'];
+const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'scan', 'preview', 'canvas', 'verify', 'doctor', 'install-skill'];
 
 const args = parseArgs(process.argv.slice(2));
 args.project = path.resolve(args.project ?? process.cwd());

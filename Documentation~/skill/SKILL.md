@@ -53,6 +53,51 @@ Run the phases in order. Stop at each **CHECKPOINT** and wait for the user. With
 5. Judge pass on `compare.png`. Repeat up to `maxIterations`. When the limit is reached, stop and report what still fails.
 6. **CHECKPOINT 3:** show the compare images at all sizes, the table, and the judge scores. Ask the user to accept. On yes: `UIKit/uikit approve <screen>`.
 
+## Reskin an existing game (keep features, animations and effects)
+
+Use this when the game already has its screens and the job is a new look. The reference images give the style; the game gives the structure (which elements each screen has); animations and effects stay. Never redraw a screen's structure by hand, in the canvas or in Unity: both are generated from one reskin map.
+
+### Setup (once per project)
+1. `UIKit/surfaces.json`: one entry per screen or popup. Find the root by `component` (type name), `path`, or `prefab`. Add `"show": "popup"` for popups that open with a scale/alpha animation, and `"states"` for fixture states.
+   ```json
+   { "surfaces": [ { "name": "Home", "scene": "Assets/Scenes/Home.unity", "component": "HomeScreen", "states": ["default", "hard"] },
+                   { "name": "NoAds", "scene": "Assets/Scenes/Home.unity", "component": "RemoveAdsPopup", "show": "popup" } ] }
+   ```
+2. `UIKit/uikit scan`: lists the names and paths game code looks up and the classes that walk children by index (`UIKit/protected.json`).
+3. Fixtures: a class implementing `Mustang.UIKit.IUIKitFixture` per surface that fills it with fixed fake data (`Apply(root, state)`), so canvas, preview and capture show the same content. Without one, runtime-filled lists stay empty.
+4. Unity: `Tools/UI Kit/Dump Inventory (all surfaces)` writes `UIKit/inventory/<surface>.json` (baseline). `UIKit/uikit doctor` must report OK (it catches a uikit.json reference resolution that differs from the CanvasScaler).
+5. `UIKit/uikit preview --before` then capture (`Tools/UI Kit/Capture Surfaces`) and `UIKit/uikit verify --before`: every surface must PASS. This proves the preview draws like Unity before anything changes.
+
+### The reskin map: `UIKit/reskin/<surface>.json`
+```json
+{ "surface": "NoAds",
+  "nodes": [ { "path": "SafeContent/Content/Scale", "sprite": "panel_main" },
+             { "path": "SafeContent/Content/Scale/buy btn", "sprite": "btn_primary_normal", "size": [640, 170] },
+             { "path": "SafeContent/Content/Scale/Title/Label", "text": { "font": "LilitaOne SDF", "size": 72, "color": "ink" } } ],
+  "add": [ { "parent": "SafeContent/Content/Scale", "name": "Ribbon", "sprite": "ribbon", "rect": [300, -40, 388, 80] } ] }
+```
+- `path`: as in the inventory (`""` = root, `Item[1]` = second sibling named Item).
+- `sprite`: a generated asset id (`uikit gen`) or an asset path (`Assets/...png`, `path#spriteName`). Sliced is set automatically for sprites with a border; `type` overrides.
+- `color` / `text.color`: a theme token (adds `ThemedGraphic`) or `#RRGGBBAA`.
+- `size` [w, h] and `add[].rect` [x, y, w, h] are design px (like inventory rects); `position` is `anchoredPosition`.
+- `active`: "true" / "false" (game code may still toggle it at runtime).
+- `add`: decorations appended as the parent's last child (drawn on top). Refused under a LayoutGroup, or a node whose children game code iterates (directly, or through a serialized reference held by a class that walks children). Decorations taken out of the map are removed on the next apply.
+- Units hold under scaled parents: the engine divides by the scale between the node and the canvas, and the preview applies the same scale to 9-slice borders and text.
+
+### Flow (per surface, parallel across surfaces)
+1. Write the map from the inventory, the theme and the component crops of the reference. One agent per surface; the map is that agent's only file.
+2. `UIKit/uikit preview <surface>`: look at `UIKit/previews/<surface>.png`. Judge it (rubric) against the reference.
+3. `UIKit/uikit canvas`: generates the Claude Design canvas from the same model (see "Canvas" below). The user reviews the canvas: CHECKPOINT 2.
+4. Unity: `Tools/UI Kit/Apply Reskin (dry run)`, read `UIKit/reports/reskin/<surface>.json`, then `Apply Reskin`. The engine changes properties only, never renames, reparents, reorders or deletes nodes, and saves nothing if any check fails.
+5. `Tools/UI Kit/Capture Surfaces`, then `UIKit/uikit verify <surface>`: structure, sprites, rects (±2 px) and pixels against the preview. Fix the map or the engine input, never the scene by hand.
+
+Batch mode for all of it: `-executeMethod Mustang.UIKit.Editor.UIKitSurfaces.FromCommandLine -uikitAction inventory|capture|reskin [-uikitSurface X] [-uikitState s] [-uikitDryRun]` (no `-quit` needed: it exits itself, with code 1 when any surface failed). Unity in batch mode must run without `-nographics` for captures.
+
+Saving a scene after a reskin rewrites the values that LayoutGroups drive (large scene diff). They are recomputed at runtime; `verify --before` on the untouched surfaces of that scene proves nothing visible moved.
+
+### Canvas (Claude Design)
+`UIKit/uikit canvas` writes `UIKit/canvas/project/` (`canvas.json` + one `.dc.html` per surface, first = `Main.dc.html`), the baked sprites and fonts to upload (`UIKit/canvas/uploads.json`) and `UIKit/canvas/design-system/tokens.json`. To publish: create the canvas (Design type) once, upload every file in uploads.json as an asset of that canvas, write `{ "<key>": "<url from the upload>" }` to a file, run `UIKit/uikit canvas --blobs <file>`, then publish `project/canvas.json` and the `.dc.html` files to the canvas. Never edit the generated `.dc.html` by hand: change the map and regenerate.
+
 ## Parallel execution
 
 `UIKit/uikit plan` computes the task graph from the files on disk and prints what is ready, grouped by lane. You are the lead: you dispatch, merge and talk to the user. Loop:

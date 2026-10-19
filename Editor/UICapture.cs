@@ -155,7 +155,10 @@ namespace Mustang.UIKit.Editor
             return new Vector2Int(Mathf.CeilToInt(size.x) + PrefabPadding * 2, Mathf.CeilToInt(size.y) + PrefabPadding * 2);
         }
 
-        static void Render(Canvas[] canvases, Vector2Int size, Color background, string fileWithoutExtension, string source)
+        /// <param name="beforeRender">Runs once the canvases have the capture size and layout, before drawing (e.g. to move a parked surface into view).</param>
+        /// <param name="afterRender">Runs while the capture layout is still applied (camera, scale), e.g. to dump an inventory.</param>
+        internal static void Render(Canvas[] canvases, Vector2Int size, Color background, string fileWithoutExtension, string source,
+            Action<Camera> afterRender = null, Action<Camera> beforeRender = null)
         {
             RenderTexture rt = null;
             GameObject cameraGo = null;
@@ -188,16 +191,26 @@ namespace Mustang.UIKit.Editor
                 }
 
                 // Two passes: the first resizes canvases for the new camera, the second settles layout groups and TMP.
-                for (var pass = 0; pass < 2; pass++)
+                void Settle()
                 {
+                    for (var pass = 0; pass < 2; pass++)
+                    {
+                        Canvas.ForceUpdateCanvases();
+                        foreach (var canvas in canvases) LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform);
+                    }
                     Canvas.ForceUpdateCanvases();
-                    foreach (var canvas in canvases) LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform);
                 }
-                Canvas.ForceUpdateCanvases();
+                Settle();
+                if (beforeRender != null)
+                {
+                    beforeRender(cam);
+                    Settle();
+                }
 
                 RenderCamera(cam, rt);
                 WritePng(rt, fileWithoutExtension + ".png");
                 UILayoutDump.Write(canvases, cam, size, source, fileWithoutExtension + ".layout.json");
+                afterRender?.Invoke(cam);
             }
             finally
             {
@@ -221,12 +234,39 @@ namespace Mustang.UIKit.Editor
                 cam.Render();
         }
 
+        /// <summary>
+        /// UI shaders blend color with SrcAlpha over the cleared target, so semi-transparent pixels come out with
+        /// premultiplied RGB. PNG and every comparison expect straight alpha: divide RGB by alpha.
+        /// </summary>
+        static void Unpremultiply(Texture2D texture)
+        {
+            // In a Linear project the blend happens on linear values and the target stores sRGB-encoded bytes:
+            // decode, divide, encode. In Gamma space the bytes are the blended values themselves.
+            var linear = PlayerSettings.colorSpace == ColorSpace.Linear;
+            byte Fix(byte c, float a)
+            {
+                var v = c / 255f;
+                v = linear ? Mathf.LinearToGammaSpace(Mathf.GammaToLinearSpace(v) / a) : v / a;
+                return (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
+            }
+            var pixels = texture.GetPixels32();
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                var p = pixels[i];
+                if (p.a == 0 || p.a == 255) continue;
+                var a = p.a / 255f;
+                pixels[i] = new Color32(Fix(p.r, a), Fix(p.g, a), Fix(p.b, a), p.a);
+            }
+            texture.SetPixels32(pixels);
+        }
+
         static void WritePng(RenderTexture rt, string path)
         {
             var previous = RenderTexture.active;
             RenderTexture.active = rt;
             var texture = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
             texture.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            Unpremultiply(texture);
             texture.Apply();
             RenderTexture.active = previous;
             File.WriteAllBytes(path, texture.EncodeToPNG());

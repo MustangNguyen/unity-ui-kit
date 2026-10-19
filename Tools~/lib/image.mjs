@@ -5,7 +5,8 @@ export async function loadRaw(input, { extract, resize } = {}) {
   let image = sharp(input);
   if (extract) image = image.extract(extract);
   if (resize) image = image.resize(resize.width, resize.height, { fit: resize.fit ?? 'fill' });
-  const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  // Always 8-bit RGBA: 16-bit or greyscale PNGs would otherwise come back with another layout.
+  const { data, info } = await image.toColourspace('srgb').ensureAlpha().raw({ depth: 'uchar' }).toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
 

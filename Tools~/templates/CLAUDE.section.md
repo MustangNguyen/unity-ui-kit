@@ -8,4 +8,5 @@ UI is built from reference images with the `unity-ui-from-reference` skill. Use 
 - Several screens or assets: drive the work with `UIKit/uikit plan` and run its ready tasks in parallel by lane.
 - Measure before judging: `UIKit/uikit palette`, `overlay`, `sheet`, `compare`. Do not claim "looks close" without a report.
 - Capture in Unity: menu `Tools/UI Kit/Capture Open Scene`, or `Mustang.UIKit.Editor.UICapture.CaptureOpenScene()`.
+- Restyling existing screens: never rebuild them by hand. Write `UIKit/reskin/<surface>.json` and apply it with Tools/UI Kit/Apply Reskin; check with `UIKit/uikit verify`.
 - Credits for downloaded icons are in `UIKit/icons/CREDITS.md`; ship them with the game.

@@ -28,6 +28,14 @@ public static class UIKitSmokeTest
 
     // Waits a few editor updates first: right after startup in batch mode, components created by
     // script can serialize without their MonoScript (m_Script fileID 0), which breaks saved prefabs.
+    // Same checks in Linear color space (captures un-premultiply differently there).
+    public static void RunLinear()
+    {
+        PlayerSettings.colorSpace = ColorSpace.Linear;
+        Debug.Log("[SMOKE] color space: " + PlayerSettings.colorSpace);
+        Run();
+    }
+
     public static void Run()
     {
         var frames = 0;
@@ -112,7 +120,10 @@ public static class UIKitSmokeTest
         tex.LoadImage(File.ReadAllBytes(Path.Combine(outDir, "1080x1920.png")));
         Check(tex.width == 1080 && tex.height == 1920, $"capture size {tex.width}x{tex.height}");
         var corner = tex.GetPixel(20, 1900); // PNG rows are bottom-up in Texture2D
-        Check(ColorUtility.ToHtmlStringRGB(corner) == "2B1B4A", $"background pixel #{ColorUtility.ToHtmlStringRGB(corner)} (expect 2B1B4A, checks gamma)");
+        // ±2 per channel: Linear projects round-trip sRGB through 8-bit linear; a gamma error would be off by tens.
+        Color32 bgPixel = corner;
+        var bgOk = Mathf.Abs(bgPixel.r - 0x2B) <= 2 && Mathf.Abs(bgPixel.g - 0x1B) <= 2 && Mathf.Abs(bgPixel.b - 0x4A) <= 2;
+        Check(bgOk, $"background pixel #{ColorUtility.ToHtmlStringRGB(corner)} (expect 2B1B4A ±2, checks gamma)");
         var face = tex.GetPixel(540, 1920 - 1480);
         Check(face.r > 0.9f && face.g > 0.5f && face.b < 0.4f, $"button face pixel #{ColorUtility.ToHtmlStringRGB(face)} is orange");
 
@@ -148,6 +159,17 @@ public static class UIKitSmokeTest
         popTex.LoadImage(File.ReadAllBytes(UICapture.CapturePrefab(popup)));
         var mid = popTex.GetPixel(popTex.width / 2, popTex.height / 2);
         Check(mid.r > 0.9f && mid.g < 0.1f, $"nested-canvas prefab on UI layer rendered (center #{ColorUtility.ToHtmlStringRGB(mid)})");
+
+        // Semi-transparent pixels keep their color (captures are un-premultiplied).
+        var ghostGo = new GameObject("Ghost", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        ((RectTransform)ghostGo.transform).sizeDelta = new Vector2(100, 100);
+        ghostGo.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.5f); // mid-grey: wrong color-space math shows here
+        var ghost = PrefabUtility.SaveAsPrefabAsset(ghostGo, "Assets/UI/Prefabs/Ghost.prefab");
+        Object.DestroyImmediate(ghostGo);
+        var ghostTex = new Texture2D(2, 2);
+        ghostTex.LoadImage(File.ReadAllBytes(UICapture.CapturePrefab(ghost)));
+        var g = ghostTex.GetPixel(ghostTex.width / 2, ghostTex.height / 2);
+        Check(Mathf.Abs(g.r - 0.5f) < 0.03f && Mathf.Abs(g.a - 0.5f) < 0.03f, $"50% grey stays #808080 with alpha 0.5 (got #{ColorUtility.ToHtmlStringRGBA(g)})");
 
         // Border-only change in the manifest reimports the sprite.
         const string manifestPath = Generated + "_uikit_import.json";
