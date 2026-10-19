@@ -1,13 +1,13 @@
 ---
 name: unity-ui-from-reference
-description: Build or refactor Unity uGUI screens and UI sprites from reference images with measured checks (Mustang UI Kit). Use for any Unity UI design, UI refactor, UI asset generation (buttons, panels, icons as SVG to PNG), or "make this screen look like the reference" task in a project that has a UIKit/ folder or should get one.
+description: Build or refactor Unity uGUI screens and UI sprites from reference images with measured checks (Mustang UI Kit). Use only in a Unity project that already has a UIKit/ folder, or when the user explicitly asks to set the kit up in a named project. Never install the kit into a project on your own initiative.
 ---
 
 # Unity UI from reference
 
 Goal: a Unity screen that matches the reference, judged by numbers and a separate judge, never by the builder's own "looks close".
 
-Tooling: the `com.mustang.ui-kit` package plus the CLI at `UIKit/uikit` in the project (Node). If the project has no `UIKit/` folder, run `node ~/MienCuong/Unity/unity-ui-kit/Tools~/uikit.mjs init <project>` first.
+Tooling: the `com.mustang.ui-kit` package plus the CLI at `UIKit/uikit` in the project (Node). If the project has no `UIKit/` folder, stop and ask the user: never run `uikit init`, add the package, or write any kit file (UIKit/, CLAUDE.md section, .gitignore lines) in a user's project unless they asked for it in words. To try the kit on a game, work on a copy of the project outside it.
 
 ## Files
 
@@ -95,6 +95,17 @@ A match against the preview cannot see these, because the preview draws them fai
 Every issue has a fix. `--fix` writes the property fixes (ppuMultiplier, preserveAspect) into the map; new art and code changes stay in the report. `--before` lints the game as it is; `--capture` lints the last Unity capture (what Unity really shows). Lint must have no errors before Apply Reskin.
 
 For new sprites, generate one per element height so borders always fit and outlines stay equal: `{ "id": "pill", "type": "panel", "style": "pill", "size": [40, 40], "heights": [38, 54, 90] }` gives `pill_h38`, `pill_h54`, `pill_h90` (buttons: `cta_h80_normal`, ...). Set `"scale"` in uikit.json to `deviceScale` or more for sharp art.
+
+### Objective match against the reference: `uikit match`
+"Does this button look like the reference?" is answered with numbers, not by eye. `UIKit/matches.json` pairs a reference region with a game node:
+```json
+{ "matches": [ { "name": "play_button", "reference": "demo-home#level_button", "surface": "Home", "node": "Safe area /play btn" } ] }
+```
+- Draw the reference region tight with `uikit overlay` (it is the component's rect). If the reference shows it under a popup dim, add `"dim": 0.4` to the region (the factor its white became).
+- Both sides are cropped to their rect, scaled to the same size and measured the same way: aspect, dominant color (ΔE), a vertical lightness profile (gloss, gradient, 3D lip) and a horizontal one (rim, outline), sampled near the sides so a centered glyph or label does not count, edge detail and SSIM.
+- `uikit match` uses the last Unity capture; `--preview` uses the preview of the reskin map (check a plan before applying it). `UIKit/reports/match/match.png` shows both crops and both profiles; report.json has the numbers.
+- Game state matters: a Filled bar at 0% or an empty list is compared as it is. Use a fixture for the state the reference shows.
+- The judge reads match.png and report.json; a "differs" names the measure and both values, which is what a style change has to move.
 
 ### Flow (per surface, parallel across surfaces)
 1. Write the map from the inventory, the theme and the component crops of the reference. One agent per surface; the map is that agent's only file.

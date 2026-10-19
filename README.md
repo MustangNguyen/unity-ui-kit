@@ -36,7 +36,7 @@ Lệnh không ghi đè file đã có.
 Dùng ở máy khác hoặc CI thì cài package bằng git URL thay cho `file:`:
 
 ```bash
-node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.4.0"
+node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.5.0"
 ```
 
 CLI vẫn chạy từ bản clone (cần `npm install` trong `Tools~`).
@@ -79,6 +79,7 @@ Dùng khi game đã có màn hình, chỉ đổi giao diện. Ảnh demo quyết
 | Viết reskin map | `UIKit/reskin/<surface>.json` (node → sprite, màu, font, size; decoration) |
 | Ảnh kỳ vọng | `UIKit/uikit preview` → `UIKit/previews/` |
 | Chất lượng hiển thị | `UIKit/uikit lint` (9-slice bị ép, mờ, kéo dãn, viền dày mỏng khác nhau); `--fix` ghi cách sửa vào map |
+| So với reference bằng số | `UIKit/uikit match` (`UIKit/matches.json`: vùng reference ↔ node game): màu, gradient, viền, tỉ lệ, cấu trúc |
 | Canvas `/design` | `UIKit/uikit canvas` (rồi upload asset, `--blobs`) |
 | Áp vào Unity | `Tools > UI Kit > Apply Reskin` (có dry run) |
 | Chụp và kiểm | `Tools > UI Kit > Capture Surfaces`, `UIKit/uikit verify` |

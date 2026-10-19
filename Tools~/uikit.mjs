@@ -24,6 +24,8 @@ Reskin of an existing game (UIKit/surfaces.json, Unity: Tools/UI Kit/Dump Invent
   lint [<surface>] [--before|--capture] [--fix]
                              display quality: squashed 9-slice, blur, stretch, uneven outlines, tile size;
                              --fix writes ppuMultiplier/preserveAspect fixes into the reskin map
+  match [<name>] [--preview]  game component vs reference region (UIKit/matches.json): shape, edge, color,
+                             gradient, structure as numbers, side by side
   canvas [<surface>...] [--before] [--blobs <file>]
                              Claude Design canvas files (+ assets to upload) from the same model
   verify [<surface>] [--before]
@@ -31,7 +33,7 @@ Reskin of an existing game (UIKit/surfaces.json, Unity: Tools/UI Kit/Dump Invent
   doctor                     setup checks (reference resolution vs CanvasScaler, capture sizes, scan, package)
 `;
 
-const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'scan', 'preview', 'lint', 'canvas', 'verify', 'doctor', 'install-skill'];
+const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'scan', 'preview', 'lint', 'match', 'canvas', 'verify', 'doctor', 'install-skill'];
 
 const args = parseArgs(process.argv.slice(2));
 args.project = path.resolve(args.project ?? process.cwd());
