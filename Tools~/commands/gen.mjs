@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
-import { loadProject } from '../lib/project.mjs';
+import { withLock } from '../lib/lock.mjs';
+import { DEFAULT_STATES, loadProject, spriteNames } from '../lib/project.mjs';
+import { genInputs, genSettings, hashFiles, readState, writeState } from '../lib/state.mjs';
 import { composeGrid } from '../lib/sheet.mjs';
 import { buildBox, buildIcon, buildRaw } from '../lib/svg.mjs';
 import { createTokens } from '../lib/theme.mjs';
 import { fail, readJson, relative, writeIfChanged, writeJson } from '../lib/util.mjs';
-
-const DEFAULT_STATES = ['normal', 'pressed', 'disabled'];
 
 /**
  * uikit gen [--only id,id]
@@ -15,10 +15,18 @@ const DEFAULT_STATES = ['normal', 'pressed', 'disabled'];
  * and a preview grid at UIKit/reports/assets.png.
  */
 export default async function gen(args) {
+  if (args.only === true) fail('--only needs ids, e.g. --only btn_primary,panel_main');
   const project = loadProject(args.project);
+  // Parallel agents may each run `gen --only <their asset>`; the shared manifest needs one writer at a time.
+  await withLock(project, 'gen', () => generate(project, args));
+}
+
+async function generate(project, args) {
+  // Read inputs inside the lock: another run may have changed them while this one waited.
+  project.theme = readJson(project.themePath);
   const tokens = createTokens(project.theme);
   const { assets } = readJson(path.join(project.dir, 'assets.json'));
-  if (args.only === true) fail('--only needs ids, e.g. --only btn_primary,panel_main');
+  const inputs = hashFiles(project, genInputs(project, assets), genSettings(project));
   const only = args.only ? new Set(String(args.only).split(',')) : null;
   for (const id of only ?? []) if (!assets.some((a) => a.id === id)) console.warn(`  --only: no asset "${id}"`);
   const scale = project.config.scale;
@@ -61,7 +69,18 @@ export default async function gen(args) {
 
   writeJson(importPath, { sprites: [...sprites.values()].sort((a, b) => a.file.localeCompare(b.file)) });
   writeIfChanged(path.join(outDir, 'ui-theme.json'), fs.readFileSync(project.themePath));
-  if (preview.length) {
+  // A partial run (--only) shows only its own sprites, so it must not replace the full preview or the stamp.
+  // `at` = when the sprite files last changed. Captures older than that show old art. It follows a
+  // hash of the files, so a run that changed nothing keeps it (builds stay valid) and a change made
+  // earlier by `gen --only` still counts.
+  if (!only && !failed) {
+    const previous = readState(project, 'gen');
+    const files = assets.flatMap(spriteNames).map((n) => path.join(outDir, `${n}.png`));
+    const sprites = hashFiles(project, [...files, importPath]);
+    const at = previous?.sprites === sprites && previous?.at ? previous.at : new Date().toISOString();
+    writeState(project, 'gen', { inputs, sprites, at });
+  }
+  if (preview.length && !only) {
     const sheet = path.join(project.dir, 'reports', 'assets.png');
     writeIfChanged(sheet, await composeGrid(preview));
     console.log(`preview: ${relative(sheet)}`);

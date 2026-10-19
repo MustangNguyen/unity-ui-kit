@@ -3,6 +3,7 @@ import path from 'node:path';
 import { cropRaw, edgeColor, loadRaw, palette, paletteDistance, toPng, withoutColor } from '../lib/image.mjs';
 import { loadProject, loadScreen } from '../lib/project.mjs';
 import { composeRows } from '../lib/sheet.mjs';
+import { hashFiles } from '../lib/state.mjs';
 import { fail, relative, writeIfChanged, writeJson } from '../lib/util.mjs';
 
 /**
@@ -58,10 +59,18 @@ export default async function sheet(args) {
   }
   if (!rows.length) fail(`no region in ${relative(screen.file)} has a generated "asset"`);
 
-  writeJson(path.join(outDir, 'sheet.json'), results);
+  // inputs: what this review looked at, so `plan` knows when the sprites changed and a new review is due.
+  writeJson(path.join(outDir, 'sheet.json'), { inputs: sheetInputsHash(project, screen), results });
   writeIfChanged(path.join(outDir, 'sheet.png'), await composeRows(rows));
   for (const r of results) console.log(`${r.name.padEnd(22)} ΔE ${String(r.paletteDeltaE).padEnd(6)} aspect ${r.aspect.reference} / ${r.aspect.asset}`);
   console.log(`\nimage: ${relative(path.join(outDir, 'sheet.png'))}`);
+}
+
+/** Hash of the reference, the screen file and every sprite its regions point at. */
+export function sheetInputsHash(project, screen) {
+  const generated = project.resolve(project.config.generatedDir);
+  const sprites = screen.regions.filter((r) => r.asset).map((r) => path.join(generated, `${r.asset}.png`));
+  return hashFiles(project, [screen.referencePath, screen.file, ...sprites]);
 }
 
 const ratio = (raw) => Math.round((raw.width / raw.height) * 100) / 100;

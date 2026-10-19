@@ -35,9 +35,16 @@ export function writeJson(file, value) {
 export function writeIfChanged(file, content) {
   const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
   if (fs.existsSync(file) && fs.readFileSync(file).equals(buffer)) return false;
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, buffer);
+  writeAtomic(file, buffer);
   return true;
+}
+
+/** Write to a temp file and rename, so a parallel reader never sees a half-written file. */
+export function writeAtomic(file, content) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const temp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, content);
+  fs.renameSync(temp, file);
 }
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);

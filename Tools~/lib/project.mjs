@@ -8,6 +8,7 @@ const DEFAULT_CONFIG = {
   generatedDir: 'Assets/UI/Generated',
   scale: 1,
   thresholds: { ssim: 0.8, paletteDeltaE: 10, iou: 0.85 },
+  maxIterations: 4,
 };
 
 /** Loads the UIKit/ folder of a Unity project: uikit.json, theme.json and helpers to resolve paths. */
@@ -53,4 +54,41 @@ export function capturePath(project, screen, size) {
   const first = project.config.captureSizes[0];
   const label = size ?? `${first.width}x${first.height}`;
   return path.join(captures, path.basename(screen.scene, '.unity'), `${label}.png`);
+}
+
+/**
+ * Every capture a screen should have: one per configured size for a scene, one for a prefab.
+ * [{ size, png, layout }]
+ */
+export function captureFiles(project, screen) {
+  const sizes = screen.prefab ? [null] : project.config.captureSizes.map((s) => `${s.width}x${s.height}`);
+  return sizes.map((size) => {
+    const png = capturePath(project, screen, size ?? undefined);
+    return { size: size ?? path.basename(png, '.png'), png, layout: png.replace(/\.png$/, '.layout.json') };
+  });
+}
+
+export const DEFAULT_STATES = ['normal', 'pressed', 'disabled'];
+
+/** PNG base names that `gen` writes for one asset (buttons get one per state). */
+export const spriteNames = (asset) =>
+  asset.type === 'button' ? (asset.states ?? DEFAULT_STATES).map((s) => `${asset.id}_${s}`) : [asset.id];
+
+/** Screen names in UIKit/screens/, sorted. */
+export function listScreens(project) {
+  const dir = path.join(project.dir, 'screens');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => path.basename(f, '.json')).sort();
+}
+
+const checkpointsPath = (project) => path.join(project.dir, 'checkpoints.json');
+
+/** Human approvals: { spec, assets, screens: { name: isoDate } }. */
+export function loadCheckpoints(project) {
+  const file = checkpointsPath(project);
+  return { screens: {}, ...(fs.existsSync(file) ? readJson(file) : {}) };
+}
+
+export function saveCheckpoints(project, checkpoints) {
+  fs.writeFileSync(checkpointsPath(project), JSON.stringify(checkpoints, null, 2) + '\n');
 }

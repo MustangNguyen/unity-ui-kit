@@ -36,7 +36,7 @@ Lệnh không ghi đè file đã có.
 Dùng ở máy khác hoặc CI thì cài package bằng git URL thay cho `file:`:
 
 ```bash
-node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.1.1"
+node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.2.0"
 ```
 
 CLI vẫn chạy từ bản clone (cần `npm install` trong `Tools~`).
@@ -51,7 +51,9 @@ Chạy từ thư mục gốc project Unity:
 | `UIKit/uikit overlay <screen>` | Vẽ lưới tọa độ và các region lên reference để đọc tọa độ chính xác |
 | `UIKit/uikit palette <screen>` | Đo màu chủ đạo của từng region |
 | `UIKit/uikit sheet <screen>` | So crop reference với sprite đã sinh |
-| `UIKit/uikit compare <screen>` | So reference với ảnh chụp Unity: SSIM, % pixel khác, ΔE palette, IoU layout. Exit code 2 khi trượt ngưỡng |
+| `UIKit/uikit compare <screen>` | So reference với ảnh chụp Unity ở mọi kích thước đã chụp: SSIM, % pixel khác, ΔE palette, IoU layout. Report nằm ở `UIKit/reports/<screen>/<size>/`. Exit code 2 khi trượt ngưỡng. Kích thước khác tỉ lệ reference chỉ để tham khảo |
+| `UIKit/uikit plan` | Task graph của cả job: việc nào xong, việc nào chạy song song được ngay, chia theo lane `parallel` / `unity` / `lead` |
+| `UIKit/uikit approve spec\|assets\|<screen>` | Ghi lại một checkpoint mày đã duyệt, để `plan` mở khóa phase sau |
 | `UIKit/uikit icon add game-icons:lorc/crystal-ball` | Tải icon (có `lucide:<name>`), ghi credit vào `UIKit/icons/CREDITS.md` |
 
 ## Trong Unity
@@ -61,6 +63,16 @@ Chạy từ thư mục gốc project Unity:
 - Code (dùng qua Unity MCP): `UICapture.CaptureOpenScene()`, `UICapture.CapturePrefab(prefab)`, `UICapture.CapturePrefabsIn("Assets/UI/Prefabs")`.
 - Batch mode: `-executeMethod Mustang.UIKit.Editor.UICapture.CaptureFromCommandLine -uikitScenes "Assets/Scenes/Home.unity"`.
 - Sprite trong thư mục generated tự nhận 9-slice border và PPU. `UITheme.asset` được tạo tự động cạnh `ui-theme.json`.
+
+## Chia việc cho nhiều agent
+
+`UIKit/uikit plan` đọc trạng thái file (screen nào đã có region, asset nào đã sinh, màn nào đã chụp, report nào trượt, checkpoint nào đã duyệt) và in ra các task đang sẵn sàng, chia theo lane:
+
+- `parallel`: chạy song song bao nhiêu agent cũng được. Mỗi task chỉ ghi file của riêng nó (spec từng màn, vẽ từng SVG, review, compare).
+- `unity`: mỗi lúc một task (build, fix), vì chỉ có một Unity Editor.
+- `lead`: agent chính tự làm: gộp theme, chạy `gen`, hỏi mày duyệt.
+
+Chạy `plan` lại sau mỗi task xong. Task nào vừa sẵn sàng thì giao ngay, nên compare màn A chạy trong lúc Unity đang build màn B. Skill hướng dẫn Claude dùng loại agent nào cho từng task.
 
 ## Style trong theme.json
 

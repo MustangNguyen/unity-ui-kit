@@ -10,12 +10,15 @@ const USAGE = `uikit <command> [--project <unity-project>]   (default project: c
   palette <screen|image>     measured dominant colors (for the spec, instead of guessing)
   sheet <screen>             reference crop vs generated sprite, per asset
   compare <screen> [--size WxH]
-                             reference vs Unity capture: SSIM, diff, palette ΔE, layout IoU
+                             reference vs Unity capture (all sizes): SSIM, diff, palette ΔE, layout IoU
   icon add <source:name>     fetch an icon (game-icons:lorc/crystal-ball, lucide:settings)
+  plan [--json]              task graph: what can run in parallel now, by lane (parallel, unity, lead)
+  approve spec|assets|<screen> [--revoke]
+                             record a user approval (checkpoint) for plan
   install-skill              link the Claude skill into ~/.claude/skills
 `;
 
-const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'install-skill'];
+const COMMANDS = ['init', 'gen', 'overlay', 'palette', 'sheet', 'compare', 'icon', 'plan', 'approve', 'install-skill'];
 
 const args = parseArgs(process.argv.slice(2));
 args.project = path.resolve(args.project ?? process.cwd());

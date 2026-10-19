@@ -36,7 +36,7 @@ export default async function init(args) {
     log('UIKit/uikit', 'created');
   }
 
-  appendOnce(path.join(target, '.gitignore'), 'UIKit/captures/', '\n# UI Kit outputs\nUIKit/captures/\nUIKit/reports/\n');
+  appendOnce(path.join(target, '.gitignore'), 'UIKit/captures/', '\n# UI Kit outputs\nUIKit/captures/\nUIKit/reports/\nUIKit/.locks/\nUIKit/.state/\n');
   appendOnce(path.join(target, 'CLAUDE.md'), CLAUDE_MARKER,
     `\n${CLAUDE_MARKER}\n${fs.readFileSync(path.join(templates, 'CLAUDE.section.md'), 'utf8')}`);
 
