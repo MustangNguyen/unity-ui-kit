@@ -33,6 +33,14 @@ Lệnh này:
 
 Lệnh không ghi đè file đã có.
 
+Dùng ở máy khác hoặc CI thì cài package bằng git URL thay cho `file:`:
+
+```bash
+node <đường dẫn clone>/Tools~/uikit.mjs init <project> --package "https://github.com/MustangNguyen/unity-ui-kit.git#v0.1.0"
+```
+
+CLI vẫn chạy từ bản clone (cần `npm install` trong `Tools~`).
+
 ## Lệnh CLI
 
 Chạy từ thư mục gốc project Unity:
@@ -90,4 +98,4 @@ Chạy từ thư mục gốc project Unity:
 - Capture ở Edit mode không mô phỏng safe area của thiết bị thật.
 - Khi chụp, mọi canvas chuyển sang camera space ở cùng khoảng cách và chỉ xếp theo sorting order. Scene trộn canvas overlay với canvas camera có thể xếp lớp khác lúc chạy game.
 - Đã kiểm trên Unity 6000.6 (Built-in và URP). Unity 6000.0 chưa chạy thử.
-- Package cài bằng `file:` đường dẫn tuyệt đối chỉ chạy trên máy này. Muốn dùng ở máy khác hoặc CI thì push repo lên git và đổi sang git URL.
+- Package cài bằng `file:` đường dẫn tuyệt đối chỉ chạy trên máy này. Máy khác dùng git URL như ở trên.
