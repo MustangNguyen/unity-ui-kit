@@ -261,6 +261,9 @@ export function buildModel(project, inventory, { reskin = null } = {}) {
     }
     const parentApproximate = [...moved].some((m) => (m === '' ? true : parentPath === m || parentPath.startsWith(`${m}/`)));
     for (const deco of decos) {
+      // Already applied: the inventory holds the real node (drawn with its own type and tiling), so drawing the
+      // map entry again would double it.
+      if (byPath.has(`${parentPath ? `${parentPath}/` : ''}UIKit_${deco.name}`)) continue;
       const s = deco.sprite ? resolveSprite(deco.sprite) : { file: null, slice: [0, 0, 0, 0], ppu: refPpu };
       const tint = resolveColor(deco.color) ?? '#FFFFFFFF';
       const k = refPpu / s.ppu;
